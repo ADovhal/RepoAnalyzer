@@ -12,21 +12,25 @@ public class GithubClient {
 
     private final RestClient restClient;
 
-    public GithubClient(RestClient.Builder builder, @Value("${github.api.base-url}") String baseUrl) {
-        this.restClient = builder
+    public GithubClient(@Value("${github.api.base-url}") String baseUrl) {
+        this.restClient = RestClient.builder()
                 .baseUrl(baseUrl)
                 .build();
     }
 
-    List<GithubRepo> fetchRepos(String username) {
+    public List<GithubRepo> fetchRepos(String username) {
         return restClient.get()
                 .uri("/users/{username}/repos", username)
                 .retrieve()
+                .onStatus(httpStatusCode -> httpStatusCode.value() == 404,
+                        ((request, response) -> {
+                            throw new UserNotFoundException(username);
+                        }))
                 .body(new ParameterizedTypeReference<>() {
                 });
     }
 
-    List<GithubBranch> fetchBranches(String owner, String repoName) {
+    public List<GithubBranch> fetchBranches(String owner, String repoName) {
         return restClient.get()
                 .uri("/repos/{owner}/{repo}/branches", owner, repoName)
                 .retrieve()
